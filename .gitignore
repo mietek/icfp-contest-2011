@@ -1,0 +1,3 @@
+bin
+src/*.hi
+src/*.o
