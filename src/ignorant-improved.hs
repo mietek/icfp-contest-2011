@@ -35,20 +35,37 @@ mainProgram =
     ]
   ]
 
-toCards :: Int -> [Card]
-toCards n =
-  let (d, m) = n `divMod` 2 in
-    if d > 0
-      then if m == 1
-        then Succ : Dbl : toCards d
-        else Dbl : toCards d
-      else if m == 1
+--------------------------------------------------------------------------------
+
+numberToCards :: Int -> [Card]
+numberToCards number =
+  let (number', remainder) = number `divMod` 2 in
+    if number' > 0
+      then if remainder == 1
+        then Succ : Dbl : numberToCards number'
+        else Dbl : numberToCards number'
+      else if remainder == 1
         then [Succ]
         else []
 
-toMoves :: Int -> [Move]
-toMoves n =
-  
+numberToMoves :: Int -> SlotNumber -> [Move]
+numberToMoves number slotNumber =
+  concatMap (\card -> [
+    ApplyL K slotNumber,
+    ApplyL S slotNumber,
+    ApplyR slotNumber card
+  ]) cards ++ [
+    ApplyR slotNumber Zero
+  ]
+  where
+    cards = numberToCards number
+
+movesToProgram :: [Move] -> Program
+movesToProgram = Concat . map Move
+
+putProgram :: Program -> IO ()
+putProgram program =
+  forProgram program (\move -> putStrLn (show move))
 
 --------------------------------------------------------------------------------
 
