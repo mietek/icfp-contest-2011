@@ -1,49 +1,18 @@
-module Main where
+module IgnorantCommon where
 
 import Control.Monad (when)
 import Control.Monad.CC
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.List (foldl')
 import Data.Maybe (fromJust)
-import System.Environment (getArgs)
-import System.IO (BufferMode (..), hSetBuffering, stdin, stdout)
 
 import Common
 
 
 --------------------------------------------------------------------------------
 
--- 1 zero
--- for [0 .. 255]
---     for [0 .. 9999]
---         0 zero
---         succ 0
---         get 0
---         dec 0
---     succ 1
-
---------------------------------------------------------------------------------
-
-data Move = ApplyL Card SlotNumber | ApplyR SlotNumber Card
-  deriving Show
-
 data Program = Move Move | Concat [Program] | Replicate Int [Program]
   deriving Show
-
-mainProgram :: Program
-mainProgram =
-  Concat [
-    Move (ApplyR 1 Zero),
-    Replicate 256 [
-      Replicate 10000 [
-        Move (ApplyR 0 Zero),
-        Move (ApplyL Succ 0),
-        Move (ApplyL Get 0),
-        Move (ApplyL Dec 0)
-      ],
-      Move (ApplyL Succ 1)
-    ]
-  ]
 
 foldProgram :: (a -> Move -> a) -> a -> Program -> a
 foldProgram f a (Move m) = f a m
@@ -80,18 +49,11 @@ finished _ = False
 
 --------------------------------------------------------------------------------
 
-main :: IO ()
-main = do
-  hSetBuffering stdin LineBuffering
-  hSetBuffering stdout LineBuffering
-  player <- fmap (toEnum . read . head) getArgs
-  play player
-
-play :: Player -> IO ()
-play player = do
+play :: Program -> Player -> IO ()
+play program player = do
   when (player == Them) ignoreTheirMove
   runCCT $ do
-    i <- begin mainProgram
+    i <- begin program
     loop i
   where
     loop i

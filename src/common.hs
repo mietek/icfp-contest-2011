@@ -22,6 +22,11 @@ instance Enum MoveType where
 
 --------------------------------------------------------------------------------
 
+data Move = ApplyL Card SlotNumber | ApplyR SlotNumber Card
+  deriving Show
+
+--------------------------------------------------------------------------------
+
 data Slot = Slot {
   slotField :: Value,
   slotVitality :: Vitality

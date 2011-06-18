@@ -1,2 +1,2 @@
 #!/bin/bash
-./bin/simple $1
+./bin/ignorant-simple $1

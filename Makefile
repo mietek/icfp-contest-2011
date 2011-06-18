@@ -1,4 +1,4 @@
-all: example experimental simple
+all: example experimental ignorant-simple
 
 example:
 	mkdir -p bin
@@ -8,6 +8,6 @@ experimental:
 	mkdir -p bin
 	ghc --make -Wall -O2 -o bin/experimental src/experimental.hs src/common.hs
 
-simple:
+ignorant-simple:
 	mkdir -p bin
-	ghc --make -Wall -O2 -o bin/simple src/simple.hs src/common.hs
+	ghc --make -Wall -O2 -o bin/ignorant-simple src/ignorant-simple.hs src/ignorant-common.hs src/common.hs
