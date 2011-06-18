@@ -3,6 +3,7 @@ module Main where
 import Control.Monad (when)
 import Control.Monad.CC
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.List (foldl')
 import Data.Maybe (fromJust)
 import System.Environment (getArgs)
 import System.IO (BufferMode (..), hSetBuffering, stdin, stdout)
@@ -46,11 +47,11 @@ mainProgram =
 
 foldProgram :: (a -> Move -> a) -> a -> Program -> a
 foldProgram f a (Move m) = f a m
-foldProgram f a (Concat ps) = foldl (foldProgram f) a ps
-foldProgram f a (Replicate n ps) = foldl (foldProgram f) a (concat (replicate n ps))  
+foldProgram f a (Concat ps) = foldl' (foldProgram f) a (reverse ps)
+foldProgram f a (Replicate n ps) = foldl' (foldProgram f) a (concat (replicate n (reverse ps)))
 
 forProgram :: Monad m => Program -> (Move -> m ()) -> m ()
-forProgram program f = foldProgram (\a m -> a >> f m) (return ()) program
+forProgram program f = foldProgram (\a m -> f m >> a) (return ()) program
 
 --------------------------------------------------------------------------------
 
@@ -81,6 +82,10 @@ main = do
   hSetBuffering stdin LineBuffering
   hSetBuffering stdout LineBuffering
   player <- fmap (toEnum . read . head) getArgs
+  play player
+
+play :: Player -> IO ()
+play player = do
   when (player == Them) ignoreTheirMove
   runCCT $ do
     i <- begin mainProgram
