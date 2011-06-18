@@ -1,2 +1,7 @@
 #!/bin/sh
-cabal install CC-delcont
+cd src/CC-delcont-0.2
+runhaskell Setup configure --user
+runhaskell Setup build
+runhaskell Setup install
+cd ../..
+make simple
