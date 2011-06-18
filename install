@@ -18,4 +18,4 @@ runhaskell Setup build
 runhaskell Setup install
 
 cd ../..
-make ignorant-simple
+make ignorant-improved
