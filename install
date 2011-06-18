@@ -7,15 +7,15 @@ runhaskell Setup configure --user
 runhaskell Setup build
 runhaskell Setup install
 
-cd mtl-2.0.1.0
+cd ../mtl-2.0.1.0
 runhaskell Setup configure --user
 runhaskell Setup build
 runhaskell Setup install
 
-cd CC-delcont-0.2
+cd ../CC-delcont-0.2
 runhaskell Setup configure --user
 runhaskell Setup build
 runhaskell Setup install
 
-cd ..
+cd ../..
 make simple
