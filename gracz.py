@@ -1,3 +1,7 @@
+#!/bin/python
+
+
+slotW=13
 def toCards(n):
     result=[]
     while n>0:
@@ -18,26 +22,26 @@ def slot(t, t2):
     print t2    
     
 def help(cart, i, j, n): 
-    slot(0, cart)
+    slot(slotW, cart)
         
     for t in toCards(i):
-        card("K", 0)
-        card("S", 0)
-        slot(0, t)
-    slot(0, "zero")
+        card("K", slotW)
+        card("S", slotW)
+        slot(slotW, t)
+    slot(slotW, "zero")
     
 
     for t in toCards(j):
-        card("K", 0)
-        card("S", 0)
-        slot(0, t)
-    slot(0, "zero")
+        card("K", slotW)
+        card("S", slotW)
+        slot(slotW, t)
+    slot(slotW, "zero")
     
     for t in toCards(n):
-        card("K", 0)
-        card("S", 0)
-        slot(0, t)
-    slot(0, "zero")
+        card("K", slotW)
+        card("S", slotW)
+        slot(slotW, t)
+    slot(slotW, "zero")
     
 for z in range(128):
     help("help", 0+2*z, 1+2*z, 9999)
