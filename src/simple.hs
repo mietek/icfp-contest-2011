@@ -35,7 +35,7 @@ mainProgram =
   Concat [
     Move (ApplyR 1 Zero),
     Replicate 256 [
-      Replicate 1000 [
+      Replicate 10000 [
         Move (ApplyR 0 Zero),
         Move (ApplyL Succ 0),
         Move (ApplyL Get 0),
@@ -48,7 +48,10 @@ mainProgram =
 foldProgram :: (a -> Move -> a) -> a -> Program -> a
 foldProgram f a (Move m) = f a m
 foldProgram f a (Concat ps) = foldl' (foldProgram f) a (reverse ps)
-foldProgram f a (Replicate n ps) = foldl' (foldProgram f) a (concat (replicate n (reverse ps)))
+foldProgram _ a (Replicate 0 _) = a
+foldProgram f a (Replicate n ps) =
+  let a' = foldl' (foldProgram f) a (reverse ps)
+  in foldProgram f a' (Replicate (n - 1) ps)
 
 forProgram :: Monad m => Program -> (Move -> m ()) -> m ()
 forProgram program f = foldProgram (\a m -> f m >> a) (return ()) program
