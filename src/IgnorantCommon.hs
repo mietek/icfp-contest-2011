@@ -54,16 +54,16 @@ play program player = do
   when (player == Them) ignoreTheirMove
   runCCT $ do
     i <- begin program
-    loop i
+    loop i i
   where
-    loop i
-      | finished i = return ()
+    loop i0 i
+      | finished i = loop i0 i0
       | otherwise = do
           i' <- next i
           liftIO $ do
             putOurMove (fromJust (current i))
             ignoreTheirMove
-          loop i'
+          loop i0 i'
 
 putOurMove :: Move -> IO ()
 putOurMove (ApplyL card slotNumber) = do
