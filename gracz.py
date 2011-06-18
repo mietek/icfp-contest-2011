@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import random
+import math
 
 def toCards(n):
     result=[]
@@ -21,7 +22,7 @@ def slot(t, t2):
     print t2    
    
 def help(cart, params): 
-    slotRev = random.randint(32, 150)
+    slotRev = random.randint(32, 140)
     slot(slotRev, cart)
     
     for p in params:
@@ -38,7 +39,8 @@ def setInt(slotNr, value):
         for t in list:
             card(t, slotNr)
     
-
+def myCeil(x, y):
+    return int(math.ceil(float(x)/float(y)))
 
 def newHelp(cart, params, v3):
         slot(slotW, cart)
@@ -67,9 +69,13 @@ slotL2 = 14
 slotL3 = 16
 slotA = 17
 
-setInt(slotL1, 9999)
-setInt(slotL2, 20997)
-setInt(slotL3, 33095)
+vL1 = 10000-1
+vL2 = 10000+11*vL1/10-1
+vL3 = 10000+11*vL2/10-1
+
+setInt(slotL1, vL1)
+setInt(slotL2, vL2)
+setInt(slotL3, vL3)
 
 setInt(slotA, 11112)
 newHelp("help", [0, 1], slotL1)
@@ -78,18 +84,18 @@ for z in range(64):
     newHelp("help", [0+4*z, 1+4*z], slotL1)
     newHelp("help", [1+4*z, 2+4*z], slotL2)
     newHelp("help", [2+4*z, 3+4*z], slotL3)
-    newHelp("attack", [3+4*z, 0+4*z], slotA)
-    newHelp("attack", [3+4*z, 1+4*z], slotA)
-    newHelp("attack", [3+4*z, 2+4*z], slotA)
-    newHelp("attack", [3+4*z, 3+4*z], slotA)
+    newHelp("attack", [3+4*z, 255-(0+4*z)], slotA)
+    newHelp("attack", [3+4*z, 255-(1+4*z)], slotA)
+    newHelp("attack", [3+4*z, 255-(2+4*z)], slotA)
+    newHelp("attack", [3+4*z, 255-(3+4*z)], slotA)
     # help("help", [0+2*z, 1+2*z, 9999])
     # help("help", [1+2*z, 0+2*z, 20997])
     # help("attack", [0+2*z, 0+2*z, 11112])
     # help("attack", [0+2*z, 1+2*z, 11112])
 
 while True:
-        for k in range(256):
-            help("revive", [k])
+    for k in range(256):
+        help("revive", [k])
         
 
 
