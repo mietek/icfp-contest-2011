@@ -10,10 +10,10 @@ data Player = Us | Them
 
 --------------------------------------------------------------------------------
 
-data Move = LeftApplication | RightApplication
+data MoveType = LeftApplication | RightApplication
   deriving (Eq, Ix, Ord, Show)
 
-instance Enum Move where
+instance Enum MoveType where
   toEnum 1 = LeftApplication
   toEnum 2 = RightApplication
   toEnum _ = error "Move.toEnum: failure"
