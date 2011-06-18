@@ -1,2 +1,2 @@
 #!/bin/bash
-./bin/example $1
+./bin/basic $1
