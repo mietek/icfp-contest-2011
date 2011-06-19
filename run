@@ -1,2 +1,2 @@
 #!/bin/bash
-./bin/aware-simple $1
+./bin/aware-q $1
