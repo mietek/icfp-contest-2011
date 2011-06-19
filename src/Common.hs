@@ -316,6 +316,10 @@ lazyAttack :: SlotNumber -> SlotNumber -> SlotNumber -> Value
 lazyAttack a b c = addDelayedArgument attack2 c where
 	attack2 = addDelayedArgument attack1 b
 	attack1 = compose (FunctionValue AttackFunction) (lazyGet a)
+	
+lazyZombie :: SlotNumber -> SlotNumber -> Value
+lazyZombie a b = addDelayedArgument zombie' b where
+	zombie' = compose (FunctionValue ZombieFunction) (lazyGet a)
 
 --------------------------------------------------------------------------------
 --in these functions last parameter always denotes slot number in which we build 
@@ -326,8 +330,14 @@ setNumber x n = valueToProgram (IntValue x) n
 setLazyAttacker :: SlotNumber -> SlotNumber -> SlotNumber -> SlotNumber -> Program
 setLazyAttacker a b c n = valueToProgram (lazyAttack a b c) n
 
+setLazyZombie :: SlotNumber -> SlotNumber -> SlotNumber -> Program
+setLazyZombie a b n = valueToProgram (lazyZombie a b) n
+
 copyFrom :: SlotNumber -> SlotNumber -> Program
 copyFrom m n = Concat [(setNumber m n), Move (ApplyL Get n)]
 
 erase :: SlotNumber -> Program
 erase n = Move (ApplyL Put n)
+
+increment :: SlotNumber -> Program
+increment n = Move (ApplyL Succ n)
