@@ -105,6 +105,26 @@ applyFunction game player function value =
                 _ -> return Nothing
             _ -> return Nothing
         _ -> return Nothing
+    KFunction -> return (Just (FunctionValue (KFunction1 value)))
+    KFunction1 valueX -> return (Just valueX)
+    IncFunction ->
+      case value of
+        IntValue slotNumber
+          | isValidSlotNumber slotNumber -> do
+              vitality <- readSlotVitality game player slotNumber
+              when (vitality > 0 && vitality < 65535) $
+                writeSlotVitality game player slotNumber (vitality + 1)
+              return (Just (FunctionValue IFunction))
+        _ -> return Nothing
+    DecFunction ->
+      case value of
+        IntValue slotNumber
+          | isValidSlotNumber slotNumber -> do
+              vitality <- readSlotVitality game (otherPlayer player) (255 - slotNumber)
+              when (vitality > 0) $
+                writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
+              return (Just (FunctionValue IFunction))
+        _ -> return Nothing
 
 --------------------------------------------------------------------------------
 

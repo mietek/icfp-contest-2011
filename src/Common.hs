@@ -10,6 +10,10 @@ import Data.List (foldl')
 data Player = Us | Them
   deriving (Enum, Eq, Ix, Ord, Show)
 
+otherPlayer :: Player -> Player
+otherPlayer Us = Them
+otherPlayer Them = Us
+
 --------------------------------------------------------------------------------
 
 data MoveType = LeftApplication | RightApplication
