@@ -10,9 +10,9 @@ import Data.List (foldl')
 data Player = Us | Them
   deriving (Enum, Eq, Ix, Ord, Show)
 
-otherPlayer :: Player -> Player
-otherPlayer Us = Them
-otherPlayer Them = Us
+swapPlayer :: Player -> Player
+swapPlayer Us = Them
+swapPlayer Them = Us
 
 --------------------------------------------------------------------------------
 
@@ -114,6 +114,9 @@ isValidSlotNumber :: SlotNumber -> Bool
 isValidSlotNumber n
   | n >= 0 && n <= 255 = True
   | otherwise = False
+
+swapSlotNumber :: SlotNumber -> SlotNumber
+swapSlotNumber n = 255 - n
 
 --------------------------------------------------------------------------------
 
