@@ -199,3 +199,67 @@ finished Done = True
 finished _ = False
 
 --------------------------------------------------------------------------------
+
+numberToCards :: Int -> [Card]
+numberToCards number =
+  let (number', remainder) = number `divMod` 2 in
+    if number' > 0
+      then if remainder == 1
+        then Succ : Dbl : numberToCards number'
+        else Dbl : numberToCards number'
+      else if remainder == 1
+        then [Succ]
+        else []
+
+numberToMoves :: Int -> SlotNumber -> [Move]
+numberToMoves number slotNumber =
+  concatMap (\card -> [
+    ApplyL K slotNumber,
+    ApplyL S slotNumber,
+    ApplyR slotNumber card
+  ]) cards ++ [
+    ApplyR slotNumber Zero
+  ]
+  where
+    cards = numberToCards number
+
+movesToProgram :: [Move] -> Program
+movesToProgram = Concat . map Move
+
+putProgram :: Program -> IO ()
+putProgram program =
+  forProgram program (\move -> putStrLn (show move))
+
+--------------------------------------------------------------------------------
+
+-- assuming that given slot is "empty" eg. contains only Id
+valueToProgram :: Value -> SlotNumber -> Program
+valueToProgram (FunctionValue func) n = case func of
+	IFunction -> Move (ApplyL I n)
+	SuccFunction -> Move (ApplyL Succ n)
+	DblFunction -> Move (ApplyL Dbl n)
+	GetFunction -> Move (ApplyL Get n)
+	PutFunction -> Move (ApplyL Put n)
+	IncFunction -> Move (ApplyL Inc n)
+	DecFunction -> Move (ApplyL Dec n)
+	CopyFunction -> Move (ApplyL Copy n)
+	ReviveFunction -> Move (ApplyL Revive n)
+	SFunction -> Move (ApplyL S n)
+	SFunction1 x -> Concat [valueToProgram x n, Move (ApplyL S n)]
+	SFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL S n), appendValueToProgram y n]
+	KFunction -> Move (ApplyL K n)
+	KFunction1 x -> Concat [valueToProgram x n, Move (ApplyL K n)]
+	AttackFunction -> Move (ApplyL Attack n)
+	AttackFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Attack n)]
+	AttackFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Attack n), appendValueToProgram y n]
+	HelpFunction -> Move (ApplyL Help n)
+	HelpFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Help n)]
+	HelpFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Help n), appendValueToProgram y n]
+	ZombieFunction -> Move (ApplyL Zombie n)
+	ZombieFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Zombie n)]
+	
+valueToProgram (IntValue x) n = movesToProgram(numberToMoves(x)(n))
+	
+appendValueToProgram :: Value -> SlotNumber -> Program
+-- to be replaced with REAL behaviour
+appendValueToProgram f n = Move (ApplyL I n)
