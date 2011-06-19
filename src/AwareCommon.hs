@@ -248,14 +248,14 @@ applyHelp1 :: Value -> Value -> ST s (Maybe Value)
 applyHelp1 valueI valueJ = return (Just (FunctionValue (HelpFunction2 valueI valueJ)))
 
 applyHelp2 :: AppContext -> Game s -> Player -> Value -> Value -> Value -> ST s (Maybe Value)
-applyHelp2 context game player valueI valueJ valueN =  
+applyHelp2 context game player valueI valueJ valueN =
   withSlotNumber valueI $ \slotNumberI ->
     withInt valueN $ \intN -> do
       vitalityV <- readSlotVitality game player slotNumberI
       if vitalityV >= intN
         then do
           writeSlotVitality game player slotNumberI (vitalityV - intN)
-          withSlotNumber valueJ $ \slotNumberJ -> do            
+          withSlotNumber valueJ $ \slotNumberJ -> do
             let intN' = (intN * 11) `div` 10
             vitalityW <- readSlotVitality game player slotNumberJ
             when (vitalityW > 0) $ do
@@ -336,7 +336,7 @@ play program player = do
             putOurMove game (fromJust (current i))
             getTheirMove game
           loop game i0 i'
-  
+
 putOurMove :: Game RealWorld -> Move -> IO ()
 putOurMove game move = do
   stToIO (applyZombies game Us)

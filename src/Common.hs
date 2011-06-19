@@ -123,7 +123,7 @@ swapSlotNumber n = 255 - n
 data Card = I | Zero | Succ | Dbl | Get | Put | S | K | Inc | Dec | Attack | Help | Copy | Revive | Zombie
 
 instance Show Card where
-  show card = 
+  show card =
     case card of
       I -> "I"
       Zero -> "zero"
