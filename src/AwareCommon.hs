@@ -1,11 +1,12 @@
-module Main where
+module AwareCommon where
 
+import Control.Monad (when)
+import Control.Monad.CC (runCCT)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.ST (ST, stToIO)
 import Data.Array.ST (STArray, newArray, readArray, writeArray)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromJust, fromMaybe)
 import GHC.Prim (RealWorld)
-import System.Environment (getArgs)
-import System.IO (BufferMode (..), hSetBuffering, stdin, stdout)
 
 import Common
 
@@ -55,28 +56,43 @@ rightApply game player slotNumber card = do
   value' <- fmap (fromMaybe (CardValue I)) (apply game value (CardValue card))
   writeSlotField game player slotNumber value'
 
+-- TODO: Finish this
 apply :: Game s -> Value -> Value -> ST s (Maybe Value)
 apply game function value = do
   return (Just value)
 
 --------------------------------------------------------------------------------
 
-main :: IO ()
-main = do
-  hSetBuffering stdin LineBuffering
-  hSetBuffering stdout LineBuffering
+play :: Program -> Player -> IO ()
+play program player = do
   game <- stToIO newGame
-  player <- fmap (toEnum . read . head) getArgs
-  case player of
-    Us -> putOurMove game
-    Them -> getTheirMove game
-
-putOurMove :: Game RealWorld -> IO ()
-putOurMove game = do
-  putStrLn "1"
-  putStrLn "I"
-  putStrLn "0"
-  getTheirMove game
+  when (player == Them) (getTheirMove game)
+  runCCT $ do
+    i <- begin program
+    loop game i i
+  where
+    loop game i0 i
+      | finished i = loop game i0 i0
+      | otherwise = do
+          i' <- next i
+          liftIO $ do
+            putOurMove game (fromJust (current i))
+            getTheirMove game
+          loop game i0 i'
+  
+putOurMove :: Game RealWorld -> Move -> IO ()
+putOurMove game move =
+  case move of
+    ApplyL card slotNumber -> do
+      stToIO (leftApply game Us card slotNumber)
+      putStrLn (show (fromEnum LeftApplication))
+      putStrLn (show card)
+      putStrLn (show slotNumber)
+    ApplyR slotNumber card -> do
+      stToIO (rightApply game Us slotNumber card)
+      putStrLn (show (fromEnum RightApplication))
+      putStrLn (show slotNumber)
+      putStrLn (show card)
 
 getTheirMove :: Game RealWorld -> IO ()
 getTheirMove game = do
@@ -90,6 +106,5 @@ getTheirMove game = do
       slotNumber <- fmap read getLine
       card <- fmap read getLine
       stToIO (rightApply game Them slotNumber card)
-  putOurMove game
 
 --------------------------------------------------------------------------------

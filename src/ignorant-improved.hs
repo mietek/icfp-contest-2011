@@ -21,19 +21,7 @@ import Common
 --------------------------------------------------------------------------------
 
 mainProgram :: Program
-mainProgram =
-  Concat [
-    Move (ApplyR 1 Zero),
-    Replicate 256 [
-      Replicate 10000 [
-        Move (ApplyR 0 Zero),
-        Move (ApplyL Succ 0),
-        Move (ApplyL Get 0),
-        Move (ApplyL Dec 0)
-      ],
-      Move (ApplyL Succ 1)
-    ]
-  ]
+mainProgram = Move (ApplyL I 0)
 
 --------------------------------------------------------------------------------
 
