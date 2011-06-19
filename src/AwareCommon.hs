@@ -79,25 +79,28 @@ incrementApps appCounter = modifySTRef appCounter (+ 1)
 leftApply :: Game s -> Player -> Card -> SlotNumber -> ST s ()
 leftApply game player card slotNumber = do
   value <- readSlotField game player slotNumber
-  value' <- fmap (fromMaybe (FunctionValue IFunction)) (applyValue game player (cardToValue card) value)
+  value' <- fmap (fromMaybe (FunctionValue IFunction)) (applyValue AsUsual game player (cardToValue card) value)
   writeSlotField game player slotNumber value'
 
 rightApply :: Game s -> Player -> SlotNumber -> Card -> ST s ()
 rightApply game player slotNumber card = do
   value <- readSlotField game player slotNumber
-  value' <- fmap (fromMaybe (FunctionValue IFunction)) (applyValue game player value (cardToValue card))
+  value' <- fmap (fromMaybe (FunctionValue IFunction)) (applyValue AsUsual game player value (cardToValue card))
   writeSlotField game player slotNumber value'
-
-applyValue :: Game s -> Player -> Value -> Value -> ST s (Maybe Value)
-applyValue game player valueF value =
-  withFunction valueF $ \function -> do
-    appCounter <- newAppCounter
-    applyFunction appCounter game player function value
 
 --------------------------------------------------------------------------------
 
-applyFunction :: AppCounter s -> Game s -> Player -> Function -> Value -> ST s (Maybe Value)
-applyFunction appCounter game player function value =
+data AppContext = AsUsual | AsZombie
+  deriving Show
+
+applyValue :: AppContext -> Game s -> Player -> Value -> Value -> ST s (Maybe Value)
+applyValue appContext game player valueF value =
+  withFunction valueF $ \function -> do
+    appCounter <- newAppCounter
+    applyFunction appCounter appContext game player function value
+
+applyFunction :: AppCounter s -> AppContext -> Game s -> Player -> Function -> Value -> ST s (Maybe Value)
+applyFunction appCounter appContext game player function value =
   ifAppsAreUnderLimit appCounter $ do
     incrementApps appCounter
     case function of
@@ -119,13 +122,13 @@ applyFunction appCounter game player function value =
       SFunction1 valueF -> return (Just (FunctionValue (SFunction2 valueF value)))
       SFunction2 valueF valueG ->
         withFunction valueF $ \functionF -> do
-          maybeValueH <- applyFunction appCounter game player functionF value
+          maybeValueH <- applyFunction appCounter appContext game player functionF value
           withValue maybeValueH $ \valueH ->
             withFunction valueG $ \functionG -> do
-              maybeValueY <- applyFunction appCounter game player functionG value
+              maybeValueY <- applyFunction appCounter appContext game player functionG value
               withValue maybeValueY $ \valueY ->
                 withFunction valueH $ \functionH ->
-                  applyFunction appCounter game player functionH valueY
+                  applyFunction appCounter appContext game player functionH valueY
       KFunction -> return (Just (FunctionValue (KFunction1 value)))
       KFunction1 valueX -> return (Just valueX)
       IncFunction ->
@@ -194,8 +197,10 @@ applyZombies :: Game s -> Player -> ST s ()
 applyZombies game player =
   forM_ [0 .. 255] $ \slotNumber -> do
     zombie <- isSlotZombie game player slotNumber
-    when zombie $
-      error "TODO"
+    when zombie $ do
+      value <- readSlotField game player slotNumber
+      _ <- applyValue AsZombie game player value (FunctionValue IFunction)
+      writeSlotField game player slotNumber (FunctionValue IFunction)
 
 --------------------------------------------------------------------------------
 
