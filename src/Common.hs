@@ -249,20 +249,47 @@ valueToProgram (FunctionValue func) n = case func of
 	ReviveFunction -> Move (ApplyL Revive n)
 	SFunction -> Move (ApplyL S n)
 	SFunction1 x -> Concat [valueToProgram x n, Move (ApplyL S n)]
-	SFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL S n), appendValueToProgram y n]
+	SFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL S n), valueToArgumentProgram y n]
 	KFunction -> Move (ApplyL K n)
 	KFunction1 x -> Concat [valueToProgram x n, Move (ApplyL K n)]
 	AttackFunction -> Move (ApplyL Attack n)
 	AttackFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Attack n)]
-	AttackFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Attack n), appendValueToProgram y n]
+	AttackFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Attack n), valueToArgumentProgram y n]
 	HelpFunction -> Move (ApplyL Help n)
 	HelpFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Help n)]
-	HelpFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Help n), appendValueToProgram y n]
+	HelpFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Help n), valueToArgumentProgram y n]
 	ZombieFunction -> Move (ApplyL Zombie n)
 	ZombieFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Zombie n)]
 	
 valueToProgram (IntValue x) n = movesToProgram(numberToMoves(x)(n))
 	
-appendValueToProgram :: Value -> SlotNumber -> Program
+valueToArgumentProgram :: Value -> SlotNumber -> Program
 -- to be replaced with REAL behaviour
-appendValueToProgram f n = Move (ApplyL I n)
+valueToArgumentProgram (FunctionValue func) n = case func of
+	IFunction -> Move (ApplyR n I)
+	SuccFunction -> Move (ApplyR n Succ)
+	DblFunction -> Move (ApplyR n Dbl)
+	GetFunction -> Move (ApplyR n Get)
+	PutFunction -> Move (ApplyR n Put)
+	IncFunction -> Move (ApplyR n Inc)
+	DecFunction -> Move (ApplyR n Dec)
+	CopyFunction -> Move (ApplyR n Copy)
+	ReviveFunction -> Move (ApplyR n Revive)
+	SFunction -> Move (ApplyR n S)
+	KFunction -> Move (ApplyR n K)
+	AttackFunction -> Move (ApplyR n Attack)
+	HelpFunction -> Move (ApplyR n Help)
+	ZombieFunction -> Move (ApplyR n Zombie)
+	SFunction1 x -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyR n S), valueToArgumentProgram x n]
+	KFunction1 x -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyR n K), valueToArgumentProgram x n]
+	AttackFunction1 x -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyR n Attack), valueToArgumentProgram x n]
+	HelpFunction1 x -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyR n Help), valueToArgumentProgram x n]
+	ZombieFunction1 x -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyR n Zombie), valueToArgumentProgram x n]	
+	SFunction2 x y -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyL K n), Move(ApplyL S n), 
+														Move(ApplyR n S), valueToArgumentProgram x n, valueToArgumentProgram y n]
+	AttackFunction2 x y -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyL K n), Move(ApplyL S n), 
+														Move(ApplyR n Attack), valueToArgumentProgram x n, valueToArgumentProgram y n]
+	HelpFunction2 x y -> Concat [Move(ApplyL K n), Move(ApplyL S n), Move(ApplyL K n), Move(ApplyL S n), 
+														Move(ApplyR n Help), valueToArgumentProgram x n, valueToArgumentProgram y n]
+
+valueToArgumentProgram (IntValue x) n = movesToProgram(numberToMoves(x)(n))
