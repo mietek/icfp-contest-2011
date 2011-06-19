@@ -125,6 +125,33 @@ applyFunction game player function value =
                 writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
               return (Just (FunctionValue IFunction))
         _ -> return Nothing
+    AttackFunction -> return (Just (FunctionValue (AttackFunction1 value)))
+    AttackFunction1 valueI -> return (Just (FunctionValue (AttackFunction2 valueI value)))
+    AttackFunction2 valueI valueJ ->
+      error "TODO"
+    HelpFunction -> return (Just (FunctionValue (HelpFunction1 value)))
+    HelpFunction1 valueI -> return (Just (FunctionValue (HelpFunction2 valueI value)))
+    HelpFunction2 valueI valueJ ->
+      error "TODO"
+    CopyFunction ->
+      case value of
+        IntValue slotNumber
+          | isValidSlotNumber slotNumber -> do
+              value' <- readSlotField game (otherPlayer player) slotNumber
+              return (Just value')
+        _ -> return Nothing
+    ReviveFunction ->
+      case value of
+        IntValue slotNumber
+          | isValidSlotNumber slotNumber -> do
+              vitality <- readSlotVitality game player slotNumber
+              when (vitality <= 0) $
+                writeSlotVitality game player slotNumber 1
+              return (Just (FunctionValue IFunction))
+        _ -> return Nothing
+    ZombieFunction -> return (Just (FunctionValue (ZombieFunction1 value)))
+    ZombieFunction1 valueI ->
+      error "TODO"
 
 --------------------------------------------------------------------------------
 
