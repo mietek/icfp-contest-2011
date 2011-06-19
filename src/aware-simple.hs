@@ -3,7 +3,7 @@ module Main where
 import System.Environment (getArgs)
 import System.IO (BufferMode (..), hSetBuffering, stdin, stdout)
 
-import IgnorantCommon
+import AwareCommon
 import Common
 
 
