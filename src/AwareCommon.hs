@@ -67,29 +67,33 @@ applyValue game player functionValue value =
     FunctionValue function -> applyFunction game player function value
     _ -> return Nothing
 
+withInt :: (Monad m) => Value -> (SlotNumber -> m (Maybe a)) -> m (Maybe a)
+withInt (IntValue int) action = action int
+withInt _ _ = return Nothing
+
+withSlotNumber :: (Monad m) => Value -> (SlotNumber -> m (Maybe a)) -> m (Maybe a)
+withSlotNumber value action =
+  withInt value $ \int ->
+    if isValidSlotNumber int
+      then action int
+      else return Nothing
+
+withFunction :: (Monad m) => Value -> (Function -> m (Maybe a)) -> m (Maybe a)
+withFunction (FunctionValue function) action = action function
+withFunction _ _ = return Nothing
+
 applyFunction :: Game s -> Player -> Function -> Value -> ST s (Maybe Value)
 applyFunction game player function value =
   case function of
     IFunction -> return (Just value)
-    SuccFunction ->
-      case value of
-        IntValue intValue -> return (Just (IntValue (min (intValue + 1) 65535)))
-        _ -> return Nothing
-    DblFunction ->
-      case value of
-        IntValue intValue -> return (Just (IntValue (min (intValue * 2) 65535)))
-        _ -> return Nothing
+    SuccFunction -> withInt value $ \int -> return (Just (IntValue (min (int + 1) 65535)))
+    DblFunction -> withInt value $ \int -> return (Just (IntValue (min (int * 2) 65535)))
     GetFunction ->
-      case value of
-        IntValue slotNumber
-          | isValidSlotNumber slotNumber -> do
-              alive <- isSlotAlive game player slotNumber
-              case alive of
-                True -> do
-                  value' <- readSlotField game player slotNumber
-                  return (Just value')
-                False -> return Nothing
-        _ -> return Nothing
+      withSlotNumber value $ \slotNumber -> do
+        alive <- isSlotAlive game player slotNumber
+        case alive of
+          True -> fmap Just (readSlotField game player slotNumber)
+          False -> return Nothing
     PutFunction -> return (Just (FunctionValue IFunction))
     SFunction -> return (Just (FunctionValue (SFunction1 value)))
     SFunction1 valueF -> return (Just (FunctionValue (SFunction2 valueF value)))
@@ -108,23 +112,17 @@ applyFunction game player function value =
     KFunction -> return (Just (FunctionValue (KFunction1 value)))
     KFunction1 valueX -> return (Just valueX)
     IncFunction ->
-      case value of
-        IntValue slotNumber
-          | isValidSlotNumber slotNumber -> do
-              vitality <- readSlotVitality game player slotNumber
-              when (vitality > 0 && vitality < 65535) $
-                writeSlotVitality game player slotNumber (vitality + 1)
-              return (Just (FunctionValue IFunction))
-        _ -> return Nothing
+      withSlotNumber value $ \slotNumber -> do
+        vitality <- readSlotVitality game player slotNumber
+        when (vitality > 0 && vitality < 65535) $
+          writeSlotVitality game player slotNumber (vitality + 1)
+        return (Just (FunctionValue IFunction))
     DecFunction ->
-      case value of
-        IntValue slotNumber
-          | isValidSlotNumber slotNumber -> do
-              vitality <- readSlotVitality game (otherPlayer player) (255 - slotNumber)
-              when (vitality > 0) $
-                writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
-              return (Just (FunctionValue IFunction))
-        _ -> return Nothing
+      withSlotNumber value $ \slotNumber -> do
+        vitality <- readSlotVitality game (otherPlayer player) (255 - slotNumber)
+        when (vitality > 0) $
+          writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
+        return (Just (FunctionValue IFunction))
     AttackFunction -> return (Just (FunctionValue (AttackFunction1 value)))
     AttackFunction1 valueI -> return (Just (FunctionValue (AttackFunction2 valueI value)))
     AttackFunction2 valueI valueJ ->
@@ -134,21 +132,15 @@ applyFunction game player function value =
     HelpFunction2 valueI valueJ ->
       error "TODO"
     CopyFunction ->
-      case value of
-        IntValue slotNumber
-          | isValidSlotNumber slotNumber -> do
-              value' <- readSlotField game (otherPlayer player) slotNumber
-              return (Just value')
-        _ -> return Nothing
+      withSlotNumber value $ \slotNumber -> do
+        value' <- readSlotField game (otherPlayer player) slotNumber
+        return (Just value')
     ReviveFunction ->
-      case value of
-        IntValue slotNumber
-          | isValidSlotNumber slotNumber -> do
-              vitality <- readSlotVitality game player slotNumber
-              when (vitality <= 0) $
-                writeSlotVitality game player slotNumber 1
-              return (Just (FunctionValue IFunction))
-        _ -> return Nothing
+      withSlotNumber value $ \slotNumber -> do
+        vitality <- readSlotVitality game player slotNumber
+        when (vitality <= 0) $
+          writeSlotVitality game player slotNumber 1
+        return (Just (FunctionValue IFunction))
     ZombieFunction -> return (Just (FunctionValue (ZombieFunction1 value)))
     ZombieFunction1 valueI ->
       error "TODO"
