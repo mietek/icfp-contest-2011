@@ -101,6 +101,11 @@ isVitalityAlive n
   | n > 0 = True
   | otherwise = False
 
+isVitalityZombie :: Vitality -> Bool
+isVitalityZombie n
+  | n == -1 = True
+  | otherwise = False
+
 --------------------------------------------------------------------------------
 
 type SlotNumber = Int

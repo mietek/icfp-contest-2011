@@ -1,11 +1,12 @@
 module AwareCommon where
 
-import Control.Monad (when)
+import Control.Monad (forM_, when)
 import Control.Monad.CC (runCCT)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.ST (ST, stToIO)
 import Data.Array.ST (STArray, newArray, readArray, writeArray)
 import Data.Maybe (fromJust, fromMaybe)
+import Data.STRef (STRef, newSTRef, readSTRef, modifySTRef)
 import GHC.Prim (RealWorld)
 
 import Common
@@ -39,15 +40,41 @@ readSlotVitality game player slotNumber = do
   slot <- readSlot game player slotNumber
   return (slotVitality slot)
 
+writeSlotVitality :: Game s -> Player -> SlotNumber -> Vitality -> ST s ()
+writeSlotVitality game player slotNumber vitality = do
+  slot <- readSlot game player slotNumber
+  writeSlot game player slotNumber slot {slotVitality = vitality}
+
+--------------------------------------------------------------------------------
+
 isSlotAlive :: Game s -> Player -> SlotNumber -> ST s Bool
 isSlotAlive game player slotNumber = do
   vitality <- readSlotVitality game player slotNumber
   return (isVitalityAlive vitality)
 
-writeSlotVitality :: Game s -> Player -> SlotNumber -> Vitality -> ST s ()
-writeSlotVitality game player slotNumber vitality = do
-  slot <- readSlot game player slotNumber
-  writeSlot game player slotNumber slot {slotVitality = vitality}
+isSlotZombie :: Game s -> Player -> SlotNumber -> ST s Bool
+isSlotZombie game player slotNumber = do
+  vitality <- readSlotVitality game player slotNumber
+  return (isVitalityZombie vitality)
+
+--------------------------------------------------------------------------------
+
+type AppCounter s = STRef s Int
+
+newAppCounter :: ST s (AppCounter s)
+newAppCounter = newSTRef 0
+
+ifAppsAreUnderLimit :: AppCounter s -> ST s (Maybe Value) -> ST s (Maybe Value)
+ifAppsAreUnderLimit appCounter action = do
+  apps <- readSTRef appCounter
+  if apps < 1000
+    then action
+    else return Nothing
+
+incrementApps :: AppCounter s -> ST s ()
+incrementApps appCounter = modifySTRef appCounter (+ 1)
+
+--------------------------------------------------------------------------------
 
 leftApply :: Game s -> Player -> Card -> SlotNumber -> ST s ()
 leftApply game player card slotNumber = do
@@ -62,10 +89,115 @@ rightApply game player slotNumber card = do
   writeSlotField game player slotNumber value'
 
 applyValue :: Game s -> Player -> Value -> Value -> ST s (Maybe Value)
-applyValue game player functionValue value =
-  case functionValue of
-    FunctionValue function -> applyFunction game player function value
-    _ -> return Nothing
+applyValue game player valueF value =
+  withFunction valueF $ \function -> do
+    appCounter <- newAppCounter
+    applyFunction appCounter game player function value
+
+--------------------------------------------------------------------------------
+
+applyFunction :: AppCounter s -> Game s -> Player -> Function -> Value -> ST s (Maybe Value)
+applyFunction appCounter game player function value =
+  ifAppsAreUnderLimit appCounter $ do
+    incrementApps appCounter
+    case function of
+      IFunction -> return (Just value)
+      SuccFunction ->
+        withInt value $ \int ->
+          return (Just (IntValue (min (int + 1) 65535)))
+      DblFunction ->
+        withInt value $ \int ->
+          return (Just (IntValue (min (int * 2) 65535)))
+      GetFunction ->
+        withSlotNumber value $ \slotNumber -> do
+          alive <- isSlotAlive game player slotNumber
+          if alive
+            then fmap Just (readSlotField game player slotNumber)
+            else return Nothing
+      PutFunction -> return (Just (FunctionValue IFunction))
+      SFunction -> return (Just (FunctionValue (SFunction1 value)))
+      SFunction1 valueF -> return (Just (FunctionValue (SFunction2 valueF value)))
+      SFunction2 valueF valueG ->
+        withFunction valueF $ \functionF -> do
+          maybeValueH <- applyFunction appCounter game player functionF value
+          withValue maybeValueH $ \valueH ->
+            withFunction valueG $ \functionG -> do
+              maybeValueY <- applyFunction appCounter game player functionG value
+              withValue maybeValueY $ \valueY ->
+                withFunction valueH $ \functionH ->
+                  applyFunction appCounter game player functionH valueY
+      KFunction -> return (Just (FunctionValue (KFunction1 value)))
+      KFunction1 valueX -> return (Just valueX)
+      IncFunction ->
+        withSlotNumber value $ \slotNumber -> do
+          vitality <- readSlotVitality game player slotNumber
+          when (vitality > 0 && vitality < 65535) $
+            writeSlotVitality game player slotNumber (vitality + 1)
+          return (Just (FunctionValue IFunction))
+      DecFunction ->
+        withSlotNumber value $ \slotNumber -> do
+          vitality <- readSlotVitality game (otherPlayer player) (255 - slotNumber)
+          when (vitality > 0) $
+            writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
+          return (Just (FunctionValue IFunction))
+      AttackFunction -> return (Just (FunctionValue (AttackFunction1 value)))
+      AttackFunction1 valueI -> return (Just (FunctionValue (AttackFunction2 valueI value)))
+      AttackFunction2 valueI valueJ ->
+        withSlotNumber valueI $ \slotNumberI ->
+          withInt value $ \int -> do
+            vitalityV <- readSlotVitality game player slotNumberI
+            if vitalityV >= int
+              then do
+                writeSlotVitality game player slotNumberI (vitalityV - int)
+                withSlotNumber valueJ $ \slotNumberJ -> do
+                  vitalityW <- readSlotVitality game (otherPlayer player) (255 - slotNumberJ)
+                  when (vitalityW > 0) $
+                    writeSlotVitality game (otherPlayer player) (255 - slotNumberJ) (max (vitalityW - ((int * 9) `div` 10)) 0)
+                  return (Just (FunctionValue IFunction))
+              else return Nothing
+      HelpFunction -> return (Just (FunctionValue (HelpFunction1 value)))
+      HelpFunction1 valueI -> return (Just (FunctionValue (HelpFunction2 valueI value)))
+      HelpFunction2 valueI valueJ ->
+        withSlotNumber valueI $ \slotNumberI ->
+          withInt value $ \int -> do
+            vitalityV <- readSlotVitality game player slotNumberI
+            if vitalityV >= int
+              then do
+                writeSlotVitality game player slotNumberI (vitalityV - int)
+                withSlotNumber valueJ $ \slotNumberJ -> do
+                  vitalityW <- readSlotVitality game player slotNumberJ
+                  when (vitalityW > 0) $
+                    writeSlotVitality game player slotNumberJ (min (vitalityW + ((int * 11) `div` 10)) 65535)
+                  return (Just (FunctionValue IFunction))
+              else return Nothing
+      CopyFunction ->
+        withSlotNumber value $ \slotNumber ->
+          fmap Just (readSlotField game (otherPlayer player) slotNumber)
+      ReviveFunction ->
+        withSlotNumber value $ \slotNumber -> do
+          vitality <- readSlotVitality game player slotNumber
+          when (vitality <= 0) $
+            writeSlotVitality game player slotNumber 1
+          return (Just (FunctionValue IFunction))
+      ZombieFunction -> return (Just (FunctionValue (ZombieFunction1 value)))
+      ZombieFunction1 valueI ->
+        withSlotNumber valueI $ \slotNumber -> do
+          alive <- isSlotAlive game (otherPlayer player) (255 - slotNumber)
+          if not alive
+            then do
+              writeSlotField game (otherPlayer player) (255 - slotNumber) value
+              writeSlotVitality game (otherPlayer player) (255 - slotNumber) (-1)
+              return (Just (FunctionValue IFunction))
+            else return Nothing
+
+applyZombies :: Game s -> Player -> ST s ()
+applyZombies game player =
+  forM_ [0 .. 255] $ \slotNumber -> do
+    zombie <- isSlotZombie game player slotNumber
+    when zombie $
+      error "TODO"
+
+--------------------------------------------------------------------------------
 
 withInt :: (Monad m) => Value -> (SlotNumber -> m (Maybe Value)) -> m (Maybe Value)
 withInt (IntValue int) action = action int
@@ -85,91 +217,6 @@ withFunction _ _ = return Nothing
 withValue :: (Monad m) => Maybe Value -> (Value -> m (Maybe Value)) -> m (Maybe Value)
 withValue (Just value) action = action value
 withValue _ _ = return Nothing
-
-applyFunction :: Game s -> Player -> Function -> Value -> ST s (Maybe Value)
-applyFunction game player function value =
-  case function of
-    IFunction -> return (Just value)
-    SuccFunction ->
-      withInt value $ \int ->
-        return (Just (IntValue (min (int + 1) 65535)))
-    DblFunction ->
-      withInt value $ \int ->
-        return (Just (IntValue (min (int * 2) 65535)))
-    GetFunction ->
-      withSlotNumber value $ \slotNumber -> do
-        alive <- isSlotAlive game player slotNumber
-        if alive
-          then fmap Just (readSlotField game player slotNumber)
-          else return Nothing
-    PutFunction -> return (Just (FunctionValue IFunction))
-    SFunction -> return (Just (FunctionValue (SFunction1 value)))
-    SFunction1 valueF -> return (Just (FunctionValue (SFunction2 valueF value)))
-    SFunction2 valueF valueG ->
-      withFunction valueF $ \functionF -> do
-        maybeValueH <- applyFunction game player functionF value
-        withValue maybeValueH $ \valueH ->
-          withFunction valueG $ \functionG -> do
-            maybeValueY <- applyFunction game player functionG value
-            withValue maybeValueY $ \valueY ->
-              withFunction valueH $ \functionH ->
-                applyFunction game player functionH valueY
-    KFunction -> return (Just (FunctionValue (KFunction1 value)))
-    KFunction1 valueX -> return (Just valueX)
-    IncFunction ->
-      withSlotNumber value $ \slotNumber -> do
-        vitality <- readSlotVitality game player slotNumber
-        when (vitality > 0 && vitality < 65535) $
-          writeSlotVitality game player slotNumber (vitality + 1)
-        return (Just (FunctionValue IFunction))
-    DecFunction ->
-      withSlotNumber value $ \slotNumber -> do
-        vitality <- readSlotVitality game (otherPlayer player) (255 - slotNumber)
-        when (vitality > 0) $
-          writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
-        return (Just (FunctionValue IFunction))
-    AttackFunction -> return (Just (FunctionValue (AttackFunction1 value)))
-    AttackFunction1 valueI -> return (Just (FunctionValue (AttackFunction2 valueI value)))
-    AttackFunction2 valueI valueJ ->
-      withSlotNumber valueI $ \slotNumberI ->
-        withInt value $ \int -> do
-          vitalityV <- readSlotVitality game player slotNumberI
-          if vitalityV >= int
-            then do
-              writeSlotVitality game player slotNumberI (vitalityV - int)
-              withSlotNumber valueJ $ \slotNumberJ -> do
-                vitalityW <- readSlotVitality game (otherPlayer player) (255 - slotNumberJ)
-                when (vitalityW > 0) $
-                  writeSlotVitality game (otherPlayer player) (255 - slotNumberJ) (max (vitalityW - ((int * 9) `div` 10)) 0)
-                return (Just (FunctionValue IFunction))
-            else return Nothing
-    HelpFunction -> return (Just (FunctionValue (HelpFunction1 value)))
-    HelpFunction1 valueI -> return (Just (FunctionValue (HelpFunction2 valueI value)))
-    HelpFunction2 valueI valueJ ->
-      withSlotNumber valueI $ \slotNumberI ->
-        withInt value $ \int -> do
-          vitalityV <- readSlotVitality game player slotNumberI
-          if vitalityV >= int
-            then do
-              writeSlotVitality game player slotNumberI (vitalityV - int)
-              withSlotNumber valueJ $ \slotNumberJ -> do
-                vitalityW <- readSlotVitality game player slotNumberJ
-                when (vitalityW > 0) $
-                  writeSlotVitality game player slotNumberJ (min (vitalityW + ((int * 11) `div` 10)) 65535)
-                return (Just (FunctionValue IFunction))
-            else return Nothing
-    CopyFunction ->
-      withSlotNumber value $ \slotNumber ->
-        fmap Just (readSlotField game (otherPlayer player) slotNumber)
-    ReviveFunction ->
-      withSlotNumber value $ \slotNumber -> do
-        vitality <- readSlotVitality game player slotNumber
-        when (vitality <= 0) $
-          writeSlotVitality game player slotNumber 1
-        return (Just (FunctionValue IFunction))
-    ZombieFunction -> return (Just (FunctionValue (ZombieFunction1 value)))
-    ZombieFunction1 valueI ->
-      error "TODO"
 
 --------------------------------------------------------------------------------
 
@@ -191,7 +238,8 @@ play program player = do
           loop game i0 i'
   
 putOurMove :: Game RealWorld -> Move -> IO ()
-putOurMove game move =
+putOurMove game move = do
+  stToIO (applyZombies game Us)
   case move of
     ApplyL card slotNumber -> do
       stToIO (leftApply game Us card slotNumber)
@@ -206,6 +254,7 @@ putOurMove game move =
 
 getTheirMove :: Game RealWorld -> IO ()
 getTheirMove game = do
+  stToIO (applyZombies game Them)
   move <- fmap (toEnum . read) getLine
   case move of
     LeftApplication -> do
