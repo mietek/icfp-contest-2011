@@ -183,23 +183,25 @@ forProgram program f = foldProgram (\a m -> f m >> a) (return ()) program
 
 data Iterator m = Done | Current Move (m (Iterator m))
 
-begin :: MonadDelimitedCont p s m => Program -> m (Iterator m)
-begin program =
-  reset $ \d ->
-    forProgram program (\m ->
-      shift d (\k -> return (Current m (k (return ()))))) >> return Done
+newIterator :: MonadDelimitedCont p s m => Program -> m (Iterator m)
+newIterator program =
+  reset $ \delimiter -> do
+    forProgram program $ \move ->
+      shift delimiter $ \continuation ->
+        return (Current move (continuation (return ())))
+    return Done
 
-current :: Iterator m -> Maybe Move
-current Done = Nothing
-current (Current m _) = Just m
+iteratorCurrent :: Iterator m -> Maybe Move
+iteratorCurrent Done = Nothing
+iteratorCurrent (Current move _) = Just move
 
-next :: Monad m => Iterator m -> m (Iterator m)
-next Done = return Done
-next (Current _ i) = i
+nextIterator :: Monad m => Iterator m -> m (Iterator m)
+nextIterator Done = return Done
+nextIterator (Current _ iterator) = iterator
 
-finished :: Iterator m -> Bool
-finished Done = True
-finished _ = False
+isIteratorDone :: Iterator m -> Bool
+isIteratorDone Done = True
+isIteratorDone _ = False
 
 --------------------------------------------------------------------------------
 

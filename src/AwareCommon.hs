@@ -325,17 +325,17 @@ play program player = do
   game <- stToIO newGame
   when (player == Them) (getTheirMove game)
   runCCT $ do
-    i <- begin program
-    loop game i i
+    start <- newIterator program
+    loop game start start
   where
-    loop game i0 i
-      | finished i = loop game i0 i0
+    loop game start iterator
+      | isIteratorDone iterator = loop game start start
       | otherwise = do
-          i' <- next i
+          iterator' <- nextIterator iterator
           liftIO $ do
-            putOurMove game (fromJust (current i))
+            putOurMove game (fromJust (iteratorCurrent iterator))
             getTheirMove game
-          loop game i0 i'
+          loop game start iterator'
 
 putOurMove :: Game RealWorld -> Move -> IO ()
 putOurMove game move = do

@@ -14,17 +14,17 @@ play :: Program -> Player -> IO ()
 play program player = do
   when (player == Them) ignoreTheirMove
   runCCT $ do
-    i <- begin program
-    loop i i
+    start <- newIterator program
+    loop start start
   where
-    loop i0 i
-      | finished i = loop i0 i0
+    loop start iterator
+      | isIteratorDone iterator = loop start start
       | otherwise = do
-          i' <- next i
+          iterator' <- nextIterator iterator
           liftIO $ do
-            putOurMove (fromJust (current i))
+            putOurMove (fromJust (iteratorCurrent iterator))
             ignoreTheirMove
-          loop i0 i'
+          loop start iterator'
 
 putOurMove :: Move -> IO ()
 putOurMove move =
