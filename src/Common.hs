@@ -330,23 +330,25 @@ lazyZombie a b = addDelayedArgument zombie' b where
 --in these functions last parameter always denotes slot number in which we build 
 
 setNumber :: Int -> SlotNumber -> Program
-setNumber x n = valueToProgram (IntValue x) n
+setNumber number destination = valueToProgram (IntValue number) destination
 
 setLazyHelper :: SlotNumber -> SlotNumber -> SlotNumber -> SlotNumber -> Program
-setLazyHelper a b c n = valueToProgram (lazyHelp a b c) n
+setLazyHelper sacrificeSlotNum helpedSlotNum power destination = valueToProgram (lazyHelp sacrificeSlotNum helpedSlotNum power) destination
 
 setLazyAttacker :: SlotNumber -> SlotNumber -> SlotNumber -> SlotNumber -> Program
-setLazyAttacker a b c n = valueToProgram (lazyAttack a b c) n
+setLazyAttacker sacrificeSlotNum opponentSlotNum power destination = valueToProgram (lazyAttack sacrificeSlotNum opponentSlotNum power) destination
 
 setLazyZombie :: SlotNumber -> SlotNumber -> SlotNumber -> Program
-setLazyZombie a b n = valueToProgram (lazyZombie a b) n
+setLazyZombie opponentSlotNum embeddedFunction destination = valueToProgram (lazyZombie opponentSlotNum embeddedFunction) destination
 
 copyFrom :: SlotNumber -> SlotNumber -> Program
-copyFrom m n = Concat [(setNumber m n), Move (ApplyL Get n)]
+copyFrom source destination = Concat [(setNumber source destination), Move (ApplyL Get destination)]
 
 erase :: SlotNumber -> Program
-erase n = Move (ApplyL Put n)
+erase slotNum = Move (ApplyL Put slotNum)
 
 increment :: SlotNumber -> Program
-increment n = Move (ApplyL Succ n)
+increment slotNum = Move (ApplyL Succ slotNum)
 
+activate :: SlotNumber -> Program
+activate slotNum = Move (ApplyR slotNum Get)
