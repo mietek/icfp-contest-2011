@@ -23,3 +23,9 @@ aware-simple:
 aware-q:
 	mkdir -p bin
 	ghc --make -Wall -O2 -isrc -o bin/aware-q src/aware-q.hs
+
+package:
+	find src -name 'dist' | xargs rm -r
+	find src -name '*.hi' | xargs rm
+	find src -name '*.o' | xargs rm
+	tar zcvf leastfixed.tar.gz README install run Makefile src
