@@ -1,4 +1,4 @@
-all: example ignorant-example ignorant-simple aware-example aware-simple
+all: example ignorant-example ignorant-simple aware-example aware-simple aware-q
 
 example:
 	mkdir -p bin
@@ -19,3 +19,7 @@ aware-example:
 aware-simple:
 	mkdir -p bin
 	ghc --make -Wall -O2 -isrc -o bin/aware-simple src/aware-simple.hs
+
+aware-q:
+	mkdir -p bin
+	ghc --make -Wall -O2 -isrc -o bin/aware-q src/aware-q.hs
