@@ -292,3 +292,42 @@ valueToArgumentProgram (FunctionValue func) n = case func of
                             Move(ApplyR n Help), valueToArgumentProgram x n, valueToArgumentProgram y n]
 
 valueToArgumentProgram (IntValue x) n = movesToProgram(numberToMoves(x)(n))
+
+--------------------------------------------------------------------------------
+compose :: Value -> Value -> Value
+compose f g = FunctionValue (SFunction2 (FunctionValue (KFunction1 f)) g)
+
+-- flattenProgram :: Program -> Program
+-- flattenProgram (Move x) = Move x
+-- flattenProgram (Concat [p]) = flattenProgram p
+-- flattenProgram (Concat ((Concat ps):pss)) = flattenProgram (Concat (ps ++ pss))
+-- flattenProgram (Concat (p:ps)) = Concat (p:ps') where Concat ps' = flattenProgram(Concat ps)
+-- flattenProgram (Replicate n ps) = Replicate n ps' where Concat ps' = flattenProgram(Concat ps)
+
+lazyGet :: SlotNumber -> Value
+lazyGet n = FunctionValue (SFunction2 (FunctionValue IFunction) (FunctionValue (KFunction1 (IntValue n))))
+
+-- adds another argument lazily loaded with get
+-- should be used on functions with arity>1 when first argument is already set
+addDelayedArgument :: Value -> SlotNumber -> Value
+addDelayedArgument f n = FunctionValue (SFunction2 (f) (lazyGet n))
+
+lazyAttack :: SlotNumber -> SlotNumber -> SlotNumber -> Value
+lazyAttack a b c = addDelayedArgument attack2 c where
+	attack2 = addDelayedArgument attack1 b
+	attack1 = compose (FunctionValue AttackFunction) (lazyGet a)
+
+--------------------------------------------------------------------------------
+--in these functions last parameter always denotes slot number in which we build 
+
+setNumber :: Int -> SlotNumber -> Program
+setNumber x n = valueToProgram (IntValue x) n
+
+setLazyAttacker :: SlotNumber -> SlotNumber -> SlotNumber -> SlotNumber -> Program
+setLazyAttacker a b c n = valueToProgram (lazyAttack a b c) n
+
+copyFrom :: SlotNumber -> SlotNumber -> Program
+copyFrom m n = Concat [(setNumber m n), Move (ApplyL Get n)]
+
+erase :: SlotNumber -> Program
+erase n = Move (ApplyL Put n)
