@@ -312,6 +312,11 @@ lazyGet n = FunctionValue (SFunction2 (FunctionValue IFunction) (FunctionValue (
 addDelayedArgument :: Value -> SlotNumber -> Value
 addDelayedArgument f n = FunctionValue (SFunction2 (f) (lazyGet n))
 
+lazyHelp :: SlotNumber -> SlotNumber -> SlotNumber -> Value
+lazyHelp a b c = addDelayedArgument help2 c where
+	help2 = addDelayedArgument help1 b
+	help1 = compose (FunctionValue HelpFunction) (lazyGet a)
+
 lazyAttack :: SlotNumber -> SlotNumber -> SlotNumber -> Value
 lazyAttack a b c = addDelayedArgument attack2 c where
 	attack2 = addDelayedArgument attack1 b
@@ -327,6 +332,9 @@ lazyZombie a b = addDelayedArgument zombie' b where
 setNumber :: Int -> SlotNumber -> Program
 setNumber x n = valueToProgram (IntValue x) n
 
+setLazyHelper :: SlotNumber -> SlotNumber -> SlotNumber -> SlotNumber -> Program
+setLazyHelper a b c n = valueToProgram (lazyHelp a b c) n
+
 setLazyAttacker :: SlotNumber -> SlotNumber -> SlotNumber -> SlotNumber -> Program
 setLazyAttacker a b c n = valueToProgram (lazyAttack a b c) n
 
@@ -341,3 +349,4 @@ erase n = Move (ApplyL Put n)
 
 increment :: SlotNumber -> Program
 increment n = Move (ApplyL Succ n)
+
