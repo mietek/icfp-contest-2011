@@ -18,25 +18,25 @@ import Common
 
 mainProgram :: Program
 mainProgram =
-  let p = (FunctionValue (SFunction2 (lazyHelp 1 2 3) (lazyHelp 2 1 5)))
-      q = (FunctionValue (SFunction2 (lazyAttack 1 1 7) (lazyAttack 1 2 7)))
+  let p = (FunctionValue (SFunction2 (lazyHelp 1 2 3) (lazyHelp 2 1 4)))
+      q = (FunctionValue (SFunction2 (lazyAttack 1 1 8) (lazyAttack 1 2 8)))
   in
   Concat [
 	 setNumber 9999 3,
-	 setNumber (10000+9999*11 `div` 10-1) 5,
+	 setNumber (10000+9999*11 `div` 10-1) 4,
 	 setNumber 0 1,
 	 setNumber 1 2,
-         valueToProgram (FunctionValue (SFunction2 p q)) 4,
-	 setNumber 11112 7,
+         valueToProgram (FunctionValue (SFunction2 p q)) 0,
+	 setNumber 11112 8,
 	 Replicate 128
 		 [
-		 copyFrom 4 0,
-		 activate 0, 
+		 copyFrom 0 35,
+		 activate 35, 
 		 Move (ApplyL Succ 1),
 		 Move (ApplyL Succ 1),
 		 Move (ApplyL Succ 2),
 		 Move (ApplyL Succ 2)],
-         Replicate 10000 [Move (ApplyL I 0)]
+         Replicate 10000 [Move (ApplyL Revive r) | r <- [0..255]]
   ]
 
 main :: IO ()
