@@ -39,6 +39,11 @@ readSlotVitality game player slotNumber = do
   slot <- readSlot game player slotNumber
   return (slotVitality slot)
 
+isSlotAlive :: Game s -> Player -> SlotNumber -> ST s Bool
+isSlotAlive game player slotNumber = do
+  vitality <- readSlotVitality game player slotNumber
+  return (isVitalityAlive vitality)
+
 writeSlotVitality :: Game s -> Player -> SlotNumber -> Vitality -> ST s ()
 writeSlotVitality game player slotNumber vitality = do
   slot <- readSlot game player slotNumber
@@ -47,19 +52,39 @@ writeSlotVitality game player slotNumber vitality = do
 leftApply :: Game s -> Player -> Card -> SlotNumber -> ST s ()
 leftApply game player card slotNumber = do
   value <- readSlotField game player slotNumber
-  value' <- fmap (fromMaybe (CardValue I)) (apply game (CardValue card) value)
+  value' <- fmap (fromMaybe IFunction) (applyValue game player (cardToValue card) value)
   writeSlotField game player slotNumber value'
 
 rightApply :: Game s -> Player -> SlotNumber -> Card -> ST s ()
 rightApply game player slotNumber card = do
   value <- readSlotField game player slotNumber
-  value' <- fmap (fromMaybe (CardValue I)) (apply game value (CardValue card))
+  value' <- fmap (fromMaybe IFunction) (applyValue game player value (cardToValue card))
   writeSlotField game player slotNumber value'
 
--- TODO: Finish this
-apply :: Game s -> Value -> Value -> ST s (Maybe Value)
-apply game function value = do
-  return (Just value)
+applyValue :: Game s -> Player -> Value -> Value -> ST s (Maybe Value)
+applyValue game player functionValue value =
+  case functionValue of
+    FunctionValue function -> applyFunction game player function value
+    _ -> return Nothing
+
+applyFunction :: Game s -> Player -> Function -> Value -> ST s (Maybe Value)
+applyFunction game player function value =
+  case function of
+    IFunction -> return value
+    SuccFunction ->
+      case value of
+        IntValue intValue -> return (min (intValue + 1) 65535)
+        _ -> return Nothing
+    DblFunction ->
+      case value of
+        IntValue intValue -> return (min (intValue * 2) 65535)
+        _ -> return Nothing
+    GetFunction ->
+      case value of
+        IntValue slotNumber
+          | isValidSlotNumber slotNumber -> do
+          readSlot game
+        _ -> return Nothing
 
 --------------------------------------------------------------------------------
 

@@ -35,7 +35,53 @@ data Slot = Slot {
 } deriving Show
 
 newSlot :: Slot
-newSlot = Slot {slotField = CardValue I, slotVitality = 10000}
+newSlot = Slot {slotField = IFunction, slotVitality = 10000}
+
+--------------------------------------------------------------------------------
+
+data Function =
+  | IFunction
+  | SuccFunction
+  | DblFunction
+  | GetFunction
+  | PutFunction
+  | SFunction | SFunction1 Value | SFunction2 Value Value
+  | KFunction | KFunction1 Value
+  | IncFunction
+  | DecFunction
+  | AttackFunction | AttackFunction1 Value | AttackFunction2 Value Value
+  | HelpFunction | HelpFunction1 Value | HelpFunction2 Value Value
+  | CopyFunction
+  | ReviveFunction
+  | ZombieFunction | ZombieFunction1 Value
+  deriving Show
+
+data Value = IntValue Int | FunctionValue Function
+  deriving Show
+
+cardToValue :: Card -> Value
+cardToValue card =
+  case card of
+    I -> IFunction
+    Zero -> IntValue 0
+    Succ -> SuccFunction
+    Dbl -> DblFunction
+    Get -> GetFunction
+    Put -> PutFunction
+    S -> SFunction
+    K -> KFunction
+    Inc -> IncFunction
+    Dec -> DecFunction
+    Attack -> AttackFunction
+    Help -> HelpFunction
+    Copy -> CopyFunction
+    Revive -> ReviveFunction
+    Zombie -> ZombieFunction
+
+isValidIntValue :: Int -> Bool
+isValidIntValue n
+  | n >= 0 && n <= 65535 = True
+  | otherwise = False
 
 --------------------------------------------------------------------------------
 
@@ -46,14 +92,9 @@ isValidVitality n
   | n >= -1 && n <= 65535 = True
   | otherwise = False
 
---------------------------------------------------------------------------------
-
-data Value = IntValue Int | CardValue Card
-  deriving Show
-
-isValidValue :: Int -> Bool
-isValidValue n
-  | n >= 0 && n <= 65535 = True
+isVitalityAlive :: Vitality > Bool
+isVitalityAlive n
+  | n > 0 = True
   | otherwise = False
 
 --------------------------------------------------------------------------------
@@ -64,9 +105,6 @@ isValidSlotNumber :: SlotNumber -> Bool
 isValidSlotNumber n
   | n >= 0 && n <= 255 = True
   | otherwise = False
-
-isSlotAlive :: Slot -> Bool
-isSlotAlive s = slotVitality s > 0
 
 --------------------------------------------------------------------------------
 
