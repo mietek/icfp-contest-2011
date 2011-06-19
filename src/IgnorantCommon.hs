@@ -27,14 +27,16 @@ play program player = do
           loop i0 i'
 
 putOurMove :: Move -> IO ()
-putOurMove (ApplyL card slotNumber) = do
-  putStrLn (show (fromEnum LeftApplication))
-  putStrLn (show card)
-  putStrLn (show slotNumber)
-putOurMove (ApplyR slotNumber card) = do
-  putStrLn (show (fromEnum RightApplication))
-  putStrLn (show slotNumber)
-  putStrLn (show card)
+putOurMove move =
+  case move of
+    ApplyL card slotNumber -> do
+      putStrLn (show (fromEnum LeftApplication))
+      putStrLn (show card)
+      putStrLn (show slotNumber)
+    ApplyR slotNumber card -> do
+      putStrLn (show (fromEnum RightApplication))
+      putStrLn (show slotNumber)
+      putStrLn (show card)
 
 ignoreTheirMove :: IO ()
 ignoreTheirMove = do

@@ -10,6 +10,10 @@ import Data.List (foldl')
 data Player = Us | Them
   deriving (Enum, Eq, Ix, Ord, Show)
 
+swapPlayer :: Player -> Player
+swapPlayer Us = Them
+swapPlayer Them = Us
+
 --------------------------------------------------------------------------------
 
 data MoveType = LeftApplication | RightApplication
@@ -35,7 +39,53 @@ data Slot = Slot {
 } deriving Show
 
 newSlot :: Slot
-newSlot = Slot {slotField = CardValue I, slotVitality = 10000}
+newSlot = Slot {slotField = FunctionValue IFunction, slotVitality = 10000}
+
+--------------------------------------------------------------------------------
+
+data Function =
+    IFunction
+  | SuccFunction
+  | DblFunction
+  | GetFunction
+  | PutFunction
+  | SFunction | SFunction1 Value | SFunction2 Value Value
+  | KFunction | KFunction1 Value
+  | IncFunction
+  | DecFunction
+  | AttackFunction | AttackFunction1 Value | AttackFunction2 Value Value
+  | HelpFunction | HelpFunction1 Value | HelpFunction2 Value Value
+  | CopyFunction
+  | ReviveFunction
+  | ZombieFunction | ZombieFunction1 Value
+  deriving Show
+
+data Value = IntValue Int | FunctionValue Function
+  deriving Show
+
+cardToValue :: Card -> Value
+cardToValue card =
+  case card of
+    I -> FunctionValue IFunction
+    Zero -> IntValue 0
+    Succ -> FunctionValue SuccFunction
+    Dbl -> FunctionValue DblFunction
+    Get -> FunctionValue GetFunction
+    Put -> FunctionValue PutFunction
+    S -> FunctionValue SFunction
+    K -> FunctionValue KFunction
+    Inc -> FunctionValue IncFunction
+    Dec -> FunctionValue DecFunction
+    Attack -> FunctionValue AttackFunction
+    Help -> FunctionValue HelpFunction
+    Copy -> FunctionValue CopyFunction
+    Revive -> FunctionValue ReviveFunction
+    Zombie -> FunctionValue ZombieFunction
+
+isValidIntValue :: Int -> Bool
+isValidIntValue n
+  | n >= 0 && n <= 65535 = True
+  | otherwise = False
 
 --------------------------------------------------------------------------------
 
@@ -46,14 +96,14 @@ isValidVitality n
   | n >= -1 && n <= 65535 = True
   | otherwise = False
 
---------------------------------------------------------------------------------
+isVitalityAlive :: Vitality -> Bool
+isVitalityAlive n
+  | n > 0 = True
+  | otherwise = False
 
-data Value = IntValue Int | CardValue Card
-  deriving Show
-
-isValidValue :: Int -> Bool
-isValidValue n
-  | n >= 0 && n <= 65535 = True
+isVitalityZombie :: Vitality -> Bool
+isVitalityZombie n
+  | n == -1 = True
   | otherwise = False
 
 --------------------------------------------------------------------------------
@@ -65,8 +115,8 @@ isValidSlotNumber n
   | n >= 0 && n <= 255 = True
   | otherwise = False
 
-isSlotAlive :: Slot -> Bool
-isSlotAlive s = slotVitality s > 0
+swapSlotNumber :: SlotNumber -> SlotNumber
+swapSlotNumber n = 255 - n
 
 --------------------------------------------------------------------------------
 
@@ -152,3 +202,67 @@ finished Done = True
 finished _ = False
 
 --------------------------------------------------------------------------------
+
+numberToCards :: Int -> [Card]
+numberToCards number =
+  let (number', remainder) = number `divMod` 2 in
+    if number' > 0
+      then if remainder == 1
+        then Succ : Dbl : numberToCards number'
+        else Dbl : numberToCards number'
+      else if remainder == 1
+        then [Succ]
+        else []
+
+numberToMoves :: Int -> SlotNumber -> [Move]
+numberToMoves number slotNumber =
+  concatMap (\card -> [
+    ApplyL K slotNumber,
+    ApplyL S slotNumber,
+    ApplyR slotNumber card
+  ]) cards ++ [
+    ApplyR slotNumber Zero
+  ]
+  where
+    cards = numberToCards number
+
+movesToProgram :: [Move] -> Program
+movesToProgram = Concat . map Move
+
+putProgram :: Program -> IO ()
+putProgram program =
+  forProgram program (\move -> putStrLn (show move))
+
+--------------------------------------------------------------------------------
+
+-- assuming that given slot is "empty" eg. contains only Id
+valueToProgram :: Value -> SlotNumber -> Program
+valueToProgram (FunctionValue func) n = case func of
+	IFunction -> Move (ApplyL I n)
+	SuccFunction -> Move (ApplyL Succ n)
+	DblFunction -> Move (ApplyL Dbl n)
+	GetFunction -> Move (ApplyL Get n)
+	PutFunction -> Move (ApplyL Put n)
+	IncFunction -> Move (ApplyL Inc n)
+	DecFunction -> Move (ApplyL Dec n)
+	CopyFunction -> Move (ApplyL Copy n)
+	ReviveFunction -> Move (ApplyL Revive n)
+	SFunction -> Move (ApplyL S n)
+	SFunction1 x -> Concat [valueToProgram x n, Move (ApplyL S n)]
+	SFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL S n), appendValueToProgram y n]
+	KFunction -> Move (ApplyL K n)
+	KFunction1 x -> Concat [valueToProgram x n, Move (ApplyL K n)]
+	AttackFunction -> Move (ApplyL Attack n)
+	AttackFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Attack n)]
+	AttackFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Attack n), appendValueToProgram y n]
+	HelpFunction -> Move (ApplyL Help n)
+	HelpFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Help n)]
+	HelpFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Help n), appendValueToProgram y n]
+	ZombieFunction -> Move (ApplyL Zombie n)
+	ZombieFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Zombie n)]
+	
+valueToProgram (IntValue x) n = movesToProgram(numberToMoves(x)(n))
+	
+appendValueToProgram :: Value -> SlotNumber -> Program
+-- to be replaced with REAL behaviour
+appendValueToProgram f n = Move (ApplyL I n)
