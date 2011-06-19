@@ -238,27 +238,27 @@ putProgram program =
 -- assuming that given slot is "empty" eg. contains only Id
 valueToProgram :: Value -> SlotNumber -> Program
 valueToProgram (FunctionValue func) n = case func of
-  IFunction -> Move (ApplyL I n)
-  SuccFunction -> Move (ApplyL Succ n)
-  DblFunction -> Move (ApplyL Dbl n)
-  GetFunction -> Move (ApplyL Get n)
-  PutFunction -> Move (ApplyL Put n)
-  IncFunction -> Move (ApplyL Inc n)
-  DecFunction -> Move (ApplyL Dec n)
-  CopyFunction -> Move (ApplyL Copy n)
-  ReviveFunction -> Move (ApplyL Revive n)
-  SFunction -> Move (ApplyL S n)
+  IFunction -> Move (ApplyR n I)
+  SuccFunction -> Move (ApplyR n Succ)
+  DblFunction -> Move (ApplyR n Dbl)
+  GetFunction -> Move (ApplyR n Get)
+  PutFunction -> Move (ApplyR n Put)
+  IncFunction -> Move (ApplyR n Inc)
+  DecFunction -> Move (ApplyR n Dec)
+  CopyFunction -> Move (ApplyR n Copy)
+  ReviveFunction -> Move (ApplyR n Revive)
+  SFunction -> Move (ApplyR n S)
   SFunction1 x -> Concat [valueToProgram x n, Move (ApplyL S n)]
   SFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL S n), valueToArgumentProgram y n]
-  KFunction -> Move (ApplyL K n)
+  KFunction -> Move (ApplyR n K)
   KFunction1 x -> Concat [valueToProgram x n, Move (ApplyL K n)]
-  AttackFunction -> Move (ApplyL Attack n)
+  AttackFunction -> Move (ApplyR n Attack)
   AttackFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Attack n)]
   AttackFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Attack n), valueToArgumentProgram y n]
-  HelpFunction -> Move (ApplyL Help n)
+  HelpFunction -> Move (ApplyR n Help)
   HelpFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Help n)]
   HelpFunction2 x y -> Concat [valueToProgram x n, Move (ApplyL Help n), valueToArgumentProgram y n]
-  ZombieFunction -> Move (ApplyL Zombie n)
+  ZombieFunction -> Move (ApplyR n Zombie)
   ZombieFunction1 x -> Concat [valueToProgram x n, Move (ApplyL Zombie n)]
   
 valueToProgram (IntValue x) n = movesToProgram(numberToMoves(x)(n))
