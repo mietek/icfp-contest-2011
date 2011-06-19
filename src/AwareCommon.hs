@@ -134,14 +134,24 @@ applyFunction appCounter appContext game player function value =
       IncFunction ->
         withSlotNumber value $ \slotNumber -> do
           vitality <- readSlotVitality game player slotNumber
-          when (vitality > 0 && vitality < 65535) $
-            writeSlotVitality game player slotNumber (vitality + 1)
+          case appContext of
+            AsUsual ->
+              when (vitality > 0 && vitality < 65535) $
+                writeSlotVitality game player slotNumber (vitality + 1)
+            AsZombie ->
+              when (vitality > 0) $
+                writeSlotVitality game player slotNumber (vitality - 1)
           return (Just (FunctionValue IFunction))
       DecFunction ->
         withSlotNumber value $ \slotNumber -> do
           vitality <- readSlotVitality game (otherPlayer player) (255 - slotNumber)
-          when (vitality > 0) $
-            writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
+          case appContext of
+            AsUsual ->
+              when (vitality > 0) $
+                writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality - 1)
+            AsZombie ->
+              when (vitality > 0 && vitality < 65535) $
+                writeSlotVitality game (otherPlayer player) (255 - slotNumber) (vitality + 1)
           return (Just (FunctionValue IFunction))
       AttackFunction -> return (Just (FunctionValue (AttackFunction1 value)))
       AttackFunction1 valueI -> return (Just (FunctionValue (AttackFunction2 valueI value)))
@@ -154,8 +164,13 @@ applyFunction appCounter appContext game player function value =
                 writeSlotVitality game player slotNumberI (vitalityV - int)
                 withSlotNumber valueJ $ \slotNumberJ -> do
                   vitalityW <- readSlotVitality game (otherPlayer player) (255 - slotNumberJ)
-                  when (vitalityW > 0) $
-                    writeSlotVitality game (otherPlayer player) (255 - slotNumberJ) (max (vitalityW - ((int * 9) `div` 10)) 0)
+                  when (vitalityW > 0) $ do
+                    let int' = (int * 9) `div` 10
+                    case appContext of
+                      AsUsual ->
+                        writeSlotVitality game (otherPlayer player) (255 - slotNumberJ) (max (vitalityW - int') 0)
+                      AsZombie ->
+                        writeSlotVitality game (otherPlayer player) (255 - slotNumberJ) (min (vitalityW + int') 65535)
                   return (Just (FunctionValue IFunction))
               else return Nothing
       HelpFunction -> return (Just (FunctionValue (HelpFunction1 value)))
@@ -169,8 +184,13 @@ applyFunction appCounter appContext game player function value =
                 writeSlotVitality game player slotNumberI (vitalityV - int)
                 withSlotNumber valueJ $ \slotNumberJ -> do
                   vitalityW <- readSlotVitality game player slotNumberJ
-                  when (vitalityW > 0) $
-                    writeSlotVitality game player slotNumberJ (min (vitalityW + ((int * 11) `div` 10)) 65535)
+                  when (vitalityW > 0) $ do
+                    let int' = (int * 11) `div` 10
+                    case appContext of
+                      AsUsual ->
+                        writeSlotVitality game player slotNumberJ (min (vitalityW + int') 65535)
+                      AsZombie ->
+                        writeSlotVitality game player slotNumberJ (max (vitalityW - int') 0)
                   return (Just (FunctionValue IFunction))
               else return Nothing
       CopyFunction ->
