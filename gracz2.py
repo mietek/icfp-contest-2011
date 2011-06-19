@@ -9,8 +9,8 @@ def toCards(n):
         n = n/2
         if n>0: result.append("dbl")
         result
-    return result
-
+    return result    
+    
 def card(t, t2):
     print 1
     print t
@@ -85,25 +85,22 @@ def zloz(params, dest):
             slot(dest, "zero")
             i=i+1            
             
-slotL1 = 3
-slotL2 = 4
-slotL3 = 5
-slotA =  6
-slotA1=  7
+slotL1 = 1
+slotL2 = 2
+slotA =  3
+slotA1=  4
 
 vL1 = 10000-1
 vL2 = 10000+11*vL1/10-1
 vL3 = 10000+11*vL2/10-1
 
 
-setInt(slotA1, 0)
 setInt(slotL1, vL1)
 setInt(slotL2, vL2)
-setInt(slotL3, vL3)
 setInt(slotA, 11112)
 
-newHelp("help", [slotA1, slotA1, slotL1], 11, 0, 1)
-newHelp("help", [slotA1, slotA1, slotL2], 12, 1, 0)
+newHelp("help", [slotA1, slotA1, slotL1], 5, 0, 1)
+newHelp("help", [slotA1, slotA1, slotL2], 6, 1, 0)
 newHelp("attack", [slotA1, slotA1, slotA], 16, 0, 0)
 newHelp("attack", [slotA1, slotA1, slotA], 17, 0, 1)
 
@@ -112,19 +109,24 @@ def execute(slotnr):
     card("get", 35)
     slot(35, "zero")
 
-zloz([11,12], 10)  
+zloz([5,6], 9)  
 zloz([16,17], 8)
-zloz([10,8], 0)
-            
-for z in range(64):
+zloz([8,9], 0)
+
+
+# setInt(slotA1, 254)
+# execute(0)
+# card("put", slotA1)
+slot(slotA1, "zero")
+          
+for z in range(128):
     # execute(1)
     execute(0)
     card("succ", slotA1)
     card("succ", slotA1)
-    # card("succ", slotA1)
-    # card("succ", slotA1)
 
-# while True:
-    # for k in range(256):
-        # help("revive", [k])
+while True:
+    for k in range(256):
+        help("revive", [k])
+
        
