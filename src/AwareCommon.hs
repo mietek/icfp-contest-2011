@@ -52,13 +52,13 @@ writeSlotVitality game player slotNumber vitality = do
 leftApply :: Game s -> Player -> Card -> SlotNumber -> ST s ()
 leftApply game player card slotNumber = do
   value <- readSlotField game player slotNumber
-  value' <- fmap (fromMaybe IFunction) (applyValue game player (cardToValue card) value)
+  value' <- fmap (fromMaybe (FunctionValue IFunction)) (applyValue game player (cardToValue card) value)
   writeSlotField game player slotNumber value'
 
 rightApply :: Game s -> Player -> SlotNumber -> Card -> ST s ()
 rightApply game player slotNumber card = do
   value <- readSlotField game player slotNumber
-  value' <- fmap (fromMaybe IFunction) (applyValue game player value (cardToValue card))
+  value' <- fmap (fromMaybe (FunctionValue IFunction)) (applyValue game player value (cardToValue card))
   writeSlotField game player slotNumber value'
 
 applyValue :: Game s -> Player -> Value -> Value -> ST s (Maybe Value)
@@ -70,20 +70,40 @@ applyValue game player functionValue value =
 applyFunction :: Game s -> Player -> Function -> Value -> ST s (Maybe Value)
 applyFunction game player function value =
   case function of
-    IFunction -> return value
+    IFunction -> return (Just value)
     SuccFunction ->
       case value of
-        IntValue intValue -> return (min (intValue + 1) 65535)
+        IntValue intValue -> return (Just (IntValue (min (intValue + 1) 65535)))
         _ -> return Nothing
     DblFunction ->
       case value of
-        IntValue intValue -> return (min (intValue * 2) 65535)
+        IntValue intValue -> return (Just (IntValue (min (intValue * 2) 65535)))
         _ -> return Nothing
     GetFunction ->
       case value of
         IntValue slotNumber
           | isValidSlotNumber slotNumber -> do
-          readSlot game
+              alive <- isSlotAlive game player slotNumber
+              case alive of
+                True -> do
+                  value' <- readSlotField game player slotNumber
+                  return (Just value')
+                False -> return Nothing
+        _ -> return Nothing
+    PutFunction -> return (Just (FunctionValue IFunction))
+    SFunction -> return (Just (FunctionValue (SFunction1 value)))
+    SFunction1 valueF -> return (Just (FunctionValue (SFunction2 valueF value)))
+    SFunction2 valueF valueG ->
+      case valueF of
+        FunctionValue functionF -> do
+          maybeValueH <- applyFunction game player functionF value
+          case valueG of
+            FunctionValue functionG -> do
+              _ <- applyFunction game player functionG value
+              case maybeValueH of
+                Just (FunctionValue functionH) -> applyFunction game player functionH value
+                _ -> return Nothing
+            _ -> return Nothing
         _ -> return Nothing
 
 --------------------------------------------------------------------------------

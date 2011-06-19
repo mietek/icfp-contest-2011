@@ -35,12 +35,12 @@ data Slot = Slot {
 } deriving Show
 
 newSlot :: Slot
-newSlot = Slot {slotField = IFunction, slotVitality = 10000}
+newSlot = Slot {slotField = FunctionValue IFunction, slotVitality = 10000}
 
 --------------------------------------------------------------------------------
 
 data Function =
-  | IFunction
+    IFunction
   | SuccFunction
   | DblFunction
   | GetFunction
@@ -62,21 +62,21 @@ data Value = IntValue Int | FunctionValue Function
 cardToValue :: Card -> Value
 cardToValue card =
   case card of
-    I -> IFunction
+    I -> FunctionValue IFunction
     Zero -> IntValue 0
-    Succ -> SuccFunction
-    Dbl -> DblFunction
-    Get -> GetFunction
-    Put -> PutFunction
-    S -> SFunction
-    K -> KFunction
-    Inc -> IncFunction
-    Dec -> DecFunction
-    Attack -> AttackFunction
-    Help -> HelpFunction
-    Copy -> CopyFunction
-    Revive -> ReviveFunction
-    Zombie -> ZombieFunction
+    Succ -> FunctionValue SuccFunction
+    Dbl -> FunctionValue DblFunction
+    Get -> FunctionValue GetFunction
+    Put -> FunctionValue PutFunction
+    S -> FunctionValue SFunction
+    K -> FunctionValue KFunction
+    Inc -> FunctionValue IncFunction
+    Dec -> FunctionValue DecFunction
+    Attack -> FunctionValue AttackFunction
+    Help -> FunctionValue HelpFunction
+    Copy -> FunctionValue CopyFunction
+    Revive -> FunctionValue ReviveFunction
+    Zombie -> FunctionValue ZombieFunction
 
 isValidIntValue :: Int -> Bool
 isValidIntValue n
@@ -92,7 +92,7 @@ isValidVitality n
   | n >= -1 && n <= 65535 = True
   | otherwise = False
 
-isVitalityAlive :: Vitality > Bool
+isVitalityAlive :: Vitality -> Bool
 isVitalityAlive n
   | n > 0 = True
   | otherwise = False
