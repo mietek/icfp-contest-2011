@@ -1,2 +1,2 @@
 #!/bin/bash
-./bin/ignorant-improved $1
+./bin/aware-example $1
