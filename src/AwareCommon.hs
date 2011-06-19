@@ -288,7 +288,7 @@ applyZombie1 :: Game s -> Player -> Value -> Value -> ST s (Maybe Value)
 applyZombie1 game player valueI valueX =
   withSlotNumber valueI $ \slotNumberI -> do
     let oppositePlayer = swapPlayer player
-        oppositeSlotNumberI = 255 - slotNumberI
+        oppositeSlotNumberI = swapSlotNumber slotNumberI
     alive <- isSlotAlive game oppositePlayer oppositeSlotNumberI
     if not alive
       then do
