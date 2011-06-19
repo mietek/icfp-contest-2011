@@ -23,3 +23,9 @@ aware-simple:
 aware-q:
 	mkdir -p bin
 	ghc --make -Wall -O2 -isrc -o bin/aware-q src/aware-q.hs
+
+package:
+	find src -name 'dist' | xargs rm -rf
+	find src -name '*.hi' | xargs rm -f
+	find src -name '*.o' | xargs rm -f
+	tar zcvf icfp2011.tar.gz README install run Makefile src
