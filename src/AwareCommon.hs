@@ -76,6 +76,9 @@ incrementApps counter = modifySTRef counter (+ 1)
 
 --------------------------------------------------------------------------------
 
+data AppContext = AsUsual | AsZombie
+  deriving Show
+
 leftApply :: Game s -> Player -> Card -> SlotNumber -> ST s ()
 leftApply game player card slotNumber = do
   value <- readSlotField game player slotNumber
@@ -98,9 +101,6 @@ applyZombies game player =
       writeSlotField game player slotNumber (FunctionValue IFunction)
 
 --------------------------------------------------------------------------------
-
-data AppContext = AsUsual | AsZombie
-  deriving Show
 
 applyValue :: AppContext -> Game s -> Player -> Value -> Value -> ST s (Maybe Value)
 applyValue context game player valueF value =
